@@ -1,3 +1,10 @@
+nymea-experience-plugin-airconditioning (1.8.0) jammy; urgency=medium
+
+  [ Michael Zanetti ]
+  * New experience plugin: air conditioning
+
+ -- jenkins <developer@nymea.io>  Sat, 25 Feb 2023 22:55:49 +0100
+
 nymea-experience-plugin-airconditioning (0.1) xenial; urgency=medium
 
 
