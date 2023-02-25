@@ -39,6 +39,7 @@
 
 #include "zoneinfo.h"
 #include "thermostat.h"
+#include "notifications.h"
 
 class AirConditioningManager : public QObject
 {
@@ -56,8 +57,8 @@ public:
     explicit AirConditioningManager(ThingManager *thingManager, QObject *parent = nullptr);
 
     ZoneInfos zones() const;
-    ZoneInfo zone(const ThingId &thermostatId);
-    QPair<AirConditioningManager::AirConditioningError, ZoneInfo> addZone(const QString &name, const QList<ThingId> &thermostats, const QList<ThingId> windowSensors, const QList<ThingId> indoorSensors, const QList<ThingId> outdoorSensors);
+    ZoneInfo zone(const QUuid &thermostatId);
+    QPair<AirConditioningManager::AirConditioningError, ZoneInfo> addZone(const QString &name, const QList<ThingId> &thermostats, const QList<ThingId> windowSensors, const QList<ThingId> indoorSensors, const QList<ThingId> outdoorSensors, const QList<ThingId> notifications);
     AirConditioningError removeZone(const QUuid &zoneId);
 
     AirConditioningError setZoneName(const QUuid &zoneId, const QString &name);
@@ -65,7 +66,7 @@ public:
     AirConditioningError setZoneSetpointOverride(const QUuid &zoneId, double setpoint, ZoneInfo::SetpointOverrideMode mode, uint minutes);
     AirConditioningError setZoneWeekSchedules(const QUuid &zoneId, const TemperatureWeekSchedule &temperatureWeekSchedule);
 
-    AirConditioningError setZoneThings(const QUuid &zoneId, const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors);
+    AirConditioningError setZoneThings(const QUuid &zoneId, const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications);
 //    AirConditioningError addThing(const QUuid &zoneId, const ThingId &thingId);
 //    AirConditioningError removeThing(const QUuid &zoneId, const ThingId &thingId);
 
@@ -74,6 +75,7 @@ signals:
     void zoneAdded(const ZoneInfo &zone);
     void zoneRemoved(const QUuid &zoneId);
     void zoneChanged(const ZoneInfo &zoneInfo);
+    void notificationThingsChanged(const QList<ThingId> &notificationThigns);
 
 private slots:
     void onThingAdded(Thing *thing);
@@ -88,7 +90,7 @@ private:
     void loadZones();
     void saveZones();
 
-    AirConditioningError verifyThingIds(const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors);
+    AirConditioningError verifyThingIds(const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications);
 
 private:
     ThingManager *m_thingManager = nullptr;
@@ -97,6 +99,7 @@ private:
     QHash<ThingId, Thermostat*> m_thermostats;
     QHash<QUuid, ZoneInfo> m_zones;
     QHash<QUuid, ZoneInfo::ZoneStatus> m_eventualOverrideCache;
+    QHash<ThingId, Notifications*> m_notifications;
 
     QDateTime m_lastUpdateTime;
 };

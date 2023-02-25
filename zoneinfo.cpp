@@ -139,6 +139,16 @@ void ZoneInfo::setOutdoorSensors(const QList<ThingId> &outdoorSensors)
     m_outdoorSensors = outdoorSensors;
 }
 
+QList<ThingId> ZoneInfo::notifications() const
+{
+    return m_notifications;
+}
+
+void ZoneInfo::setNotifications(const QList<ThingId> &notifications)
+{
+    m_notifications = notifications;
+}
+
 ZoneInfo::ZoneStatus ZoneInfo::zoneStatus() const
 {
     return m_zoneStatus;
@@ -152,6 +162,46 @@ void ZoneInfo::setZoneStatus(ZoneStatus zoneStatus)
 void ZoneInfo::setZoneStatusFlag(ZoneStatusFlag flag, bool set)
 {
     m_zoneStatus.setFlag(flag, set);
+}
+
+double ZoneInfo::temperature() const
+{
+    return m_temperature;
+}
+
+void ZoneInfo::setTemperature(double temperature)
+{
+    m_temperature = temperature;
+}
+
+double ZoneInfo::humidity() const
+{
+    return m_humidity;
+}
+
+void ZoneInfo::setHumidity(double humidity)
+{
+    m_humidity = humidity;
+}
+
+uint ZoneInfo::voc() const
+{
+    return m_voc;
+}
+
+void ZoneInfo::setVoc(uint voc)
+{
+    m_voc = voc;
+}
+
+double ZoneInfo::pm25() const
+{
+    return m_pm25;
+}
+
+void ZoneInfo::setPm25(double pm25)
+{
+    m_pm25 = pm25;
 }
 
 TemperatureWeekSchedule ZoneInfo::weekSchedule() const

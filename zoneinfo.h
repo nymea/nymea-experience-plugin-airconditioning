@@ -53,7 +53,12 @@ class ZoneInfo
     Q_PROPERTY(QList<ThingId> windowSensors READ windowSensors)
     Q_PROPERTY(QList<ThingId> indoorSensors READ indoorSensors)
     Q_PROPERTY(QList<ThingId> outdoorSensors READ outdoorSensors)
+    Q_PROPERTY(QList<ThingId> notifications READ notifications)
     Q_PROPERTY(ZoneStatus zoneStatus READ zoneStatus)
+    Q_PROPERTY(double temperature READ temperature)
+    Q_PROPERTY(double humidity READ humidity)
+    Q_PROPERTY(uint voc READ voc)
+    Q_PROPERTY(double pm25 READ pm25)
     Q_PROPERTY(TemperatureWeekSchedule weekSchedule READ weekSchedule)
 
 public:
@@ -109,9 +114,24 @@ public:
     QList<ThingId> outdoorSensors() const;
     void setOutdoorSensors(const QList<ThingId> &outdoorSensors);
 
+    QList<ThingId> notifications() const;
+    void setNotifications(const QList<ThingId> &notifications);
+
     ZoneInfo::ZoneStatus zoneStatus() const;
     void setZoneStatus(ZoneStatus zoneStatus);
     void setZoneStatusFlag(ZoneStatusFlag flag, bool set);
+
+    double temperature() const;
+    void setTemperature(double temperature);
+
+    double humidity() const;
+    void setHumidity(double humidity);
+
+    uint voc() const;
+    void setVoc(uint voc);
+
+    double pm25() const;
+    void setPm25(double pm25);
 
     TemperatureWeekSchedule weekSchedule() const;
     void setWeekSchedule(const TemperatureWeekSchedule &weekSchedule);
@@ -128,7 +148,12 @@ private:
     QList<ThingId> m_windowSensors;
     QList<ThingId> m_indoorSensors;
     QList<ThingId> m_outdoorSensors;
+    QList<ThingId> m_notifications;
     ZoneStatus m_zoneStatus = ZoneStatusFlagNone;
+    double m_temperature = 0;
+    double m_humidity = 0;
+    uint m_voc = 0;
+    double m_pm25 = 0;
     TemperatureWeekSchedule m_weekSchedule;
 };
 Q_DECLARE_METATYPE(ZoneInfo)

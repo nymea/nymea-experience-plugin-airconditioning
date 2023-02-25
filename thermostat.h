@@ -46,6 +46,9 @@ public:
     void setTargetTemperature(double targetTemperature, bool force = false);
     void setWindowOpen(bool windowOpen);
 
+    bool hasTemperatureSensor() const;
+    double temperature() const;
+
 signals:
 
 private:

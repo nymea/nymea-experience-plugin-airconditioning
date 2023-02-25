@@ -128,3 +128,13 @@ void Thermostat::setWindowOpen(bool windowOpen)
     }
 }
 
+bool Thermostat::hasTemperatureSensor() const
+{
+    return m_thing->thingClass().interfaces().contains("temperaturesensor");
+}
+
+double Thermostat::temperature() const
+{
+    return m_thing->stateValue("temperature").toDouble();
+}
+

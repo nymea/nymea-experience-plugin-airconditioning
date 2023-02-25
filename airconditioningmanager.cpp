@@ -52,6 +52,9 @@ AirConditioningManager::AirConditioningManager(ThingManager *thingManager, QObje
         if (thing->thingClass().interfaces().contains("thermostat")) {
             m_thermostats.insert(thing->id(), new Thermostat(m_thingManager, thing, this));
         }
+        if (thing->thingClass().interfaces().contains("notifications")) {
+            m_notifications.insert(thing->id(), new Notifications(m_thingManager, thing, this));
+        }
     }
 
     loadZones();
@@ -71,17 +74,17 @@ ZoneInfos AirConditioningManager::zones() const
     return m_zones.values();
 }
 
-ZoneInfo AirConditioningManager::zone(const ThingId &thermostatId)
+ZoneInfo AirConditioningManager::zone(const QUuid &zoneId)
 {
-    return m_zones.value(thermostatId);
+    return m_zones.value(zoneId);
 }
 
-QPair<AirConditioningManager::AirConditioningError, ZoneInfo> AirConditioningManager::addZone(const QString &name, const QList<ThingId> &thermostats, const QList<ThingId> windowSensors, const QList<ThingId> indoorSensors, const QList<ThingId> outdoorSensors)
+QPair<AirConditioningManager::AirConditioningError, ZoneInfo> AirConditioningManager::addZone(const QString &name, const QList<ThingId> &thermostats, const QList<ThingId> windowSensors, const QList<ThingId> indoorSensors, const QList<ThingId> outdoorSensors, const QList<ThingId> notifications)
 {
     ZoneInfo zone(QUuid::createUuid());
     zone.setName(name);
     zone.setWeekSchedule(TemperatureWeekSchedule::create());
-    AirConditioningError status = verifyThingIds(thermostats, windowSensors, indoorSensors, outdoorSensors);
+    AirConditioningError status = verifyThingIds(thermostats, windowSensors, indoorSensors, outdoorSensors, notifications);
     if (status != AirConditioningErrorNoError) {
         qCWarning(dcAirConditioning()) << "Invalid thing id" << status << "in" << thermostats;
         return qMakePair<AirConditioningError, ZoneInfo>(status, ZoneInfo());
@@ -91,6 +94,7 @@ QPair<AirConditioningManager::AirConditioningError, ZoneInfo> AirConditioningMan
     zone.setWindowSensors(windowSensors);
     zone.setIndoorSensors(indoorSensors);
     zone.setOutdoorSensors(outdoorSensors);
+    zone.setNotifications(notifications);
 
     m_zones.insert(zone.id(), zone);
     saveZones();
@@ -179,12 +183,12 @@ AirConditioningManager::AirConditioningError AirConditioningManager::setZoneWeek
     return AirConditioningErrorNoError;
 }
 
-AirConditioningManager::AirConditioningError AirConditioningManager::setZoneThings(const QUuid &zoneId, const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors)
+AirConditioningManager::AirConditioningError AirConditioningManager::setZoneThings(const QUuid &zoneId, const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications)
 {
     if (!m_zones.contains(zoneId)) {
         return AirConditioningErrorZoneNotFound;
     }
-    AirConditioningError status = verifyThingIds(thermostats, windowSensors, indoorSensors, outdoorSensors);
+    AirConditioningError status = verifyThingIds(thermostats, windowSensors, indoorSensors, outdoorSensors, notifications);
     if (status != AirConditioningErrorNoError) {
         return status;
     }
@@ -192,8 +196,9 @@ AirConditioningManager::AirConditioningError AirConditioningManager::setZoneThin
     m_zones[zoneId].setWindowSensors(windowSensors);
     m_zones[zoneId].setIndoorSensors(indoorSensors);
     m_zones[zoneId].setOutdoorSensors(outdoorSensors);
+    m_zones[zoneId].setNotifications(notifications);
     saveZones();
-    qCDebug(dcAirConditioning()) << "Zone things set. Thermostats:" << thermostats << "Window sensors:" << windowSensors << "indoor sensors:" << indoorSensors << "outdoor sensors:" << outdoorSensors;
+    qCDebug(dcAirConditioning()) << "Zone things set. Thermostats:" << thermostats << "Window sensors:" << windowSensors << "indoor sensors:" << indoorSensors << "outdoor sensors:" << outdoorSensors << "notifications:" << notifications;
     emit zoneChanged(m_zones.value(zoneId));
     updateZone(zoneId);
     return AirConditioningErrorNoError;
@@ -219,6 +224,10 @@ void AirConditioningManager::onThingAdded(Thing *thing)
         qCInfo(dcAirConditioning()) << "Thermostat added:" << thing;
         m_thermostats.insert(thing->id(), new Thermostat(m_thingManager, thing, this));
     }
+    if (thing->thingClass().interfaces().contains("notifications")) {
+        qCInfo(dcAirConditioning()) << "Notifications added:" << thing;
+        m_notifications.insert(thing->id(), new Notifications(m_thingManager, thing, this));
+    }
 }
 
 void AirConditioningManager::onThingRemoved(const ThingId &thingId)
@@ -228,6 +237,7 @@ void AirConditioningManager::onThingRemoved(const ThingId &thingId)
         QList<ThingId> windowSensors = m_zones.value(zone.id()).windowSensors();
         QList<ThingId> indoorSensors = m_zones.value(zone.id()).indoorSensors();
         QList<ThingId> outdoorSensors = m_zones.value(zone.id()).outdoorSensors();
+        QList<ThingId> notifications = m_zones.value(zone.id()).notifications();
         bool changed = false;
         if (thermostats.contains(thingId)) {
             thermostats.removeAll(thingId);
@@ -245,28 +255,37 @@ void AirConditioningManager::onThingRemoved(const ThingId &thingId)
             outdoorSensors.removeAll(thingId);
             changed = true;
         }
+        if (notifications.contains(thingId)) {
+            notifications.removeAll(thingId);
+            changed = true;
+        }
         if (changed) {
-            setZoneThings(zone.id(), thermostats, windowSensors, indoorSensors, outdoorSensors);
+            setZoneThings(zone.id(), thermostats, windowSensors, indoorSensors, outdoorSensors, notifications);
         }
     }
 }
 
 void AirConditioningManager::onThingStateChaged(Thing *thing, const StateTypeId &stateTypeId, const QVariant &value, const QVariant &minValue, const QVariant &maxValue)
 {
-    Q_UNUSED(stateTypeId)
-    Q_UNUSED(value)
     Q_UNUSED(minValue)
     Q_UNUSED(maxValue)
 
-    // We'll only want to immediately react on window open/close changes. Anything else is good enough once per minute
-    if (!thing->thingClass().interfaces().contains("closablesensor")) {
-        return;
-    }
-
-
+    StateType stateType = thing->thingClass().getStateType(stateTypeId);
     foreach (const ZoneInfo &zone, m_zones) {
-        if (zone.windowSensors().contains(thing->id())) {
-            qCDebug(dcAirConditioning()) << "Window sensor in zone" << zone.name() << "changed";
+        bool changed = false;
+        if (zone.windowSensors().contains(thing->id()) && stateType.name() == "closed") {
+            qCDebug(dcAirConditioning()) << "Window sensor in zone" << zone.name() << "changed" << value;
+            changed = true;
+        }
+        if (zone.thermostats().contains(thing->id()) && stateType.name() == "temperature") {
+            qCDebug(dcAirConditioning()) << "Thermostat temperature sensor in zone" << zone.name() << "changed" << value;
+            changed = true;
+        }
+        if (zone.indoorSensors().contains(thing->id()) && QStringList{"temperature", "humidity", "voc", "pm25"}.contains(stateType.name())) {
+            qCDebug(dcAirConditioning()) << "Sensor for" << stateType.name() << "in zone" << zone.name() << "changed" << value;
+            changed = true;
+        }
+        if (changed) {
             updateZone(zone.id());
         }
     }
@@ -274,7 +293,7 @@ void AirConditioningManager::onThingStateChaged(Thing *thing, const StateTypeId 
 
 void AirConditioningManager::onActionExecuted(const Action &action, Thing::ThingError status)
 {
-    if (action.triggeredBy() == Action::TriggeredByUser) {
+    if (action.triggeredBy() == Action::TriggeredByUser && status == Thing::ThingErrorNoError) {
         Thing *thing = m_thingManager->findConfiguredThing(action.thingId());
         if (thing && thing->thingClass().interfaces().contains("thermostat")) {
             if (thing->thingClass().actionTypes().findById(action.actionTypeId()).name() == "targetTemperature") {
@@ -353,46 +372,67 @@ void AirConditioningManager::updateZone(const QUuid &zoneId)
 
     qCDebug(dcAirConditioning()) << "Window open" << windowOpen << "Override active:" << overrideActive << "Time schedule active:" << timeScheduleActive << "target:" << targetTemp;
 
-    bool highHumidity = false;
-    bool badAir = false;
+    // To determine the zone temperature we'll first check the thermostats if they have a temp sensor and use the highest value
+    // If no thermstats with temp sensors are available, we'll use the highest temp value from the indoor sensors.
+    bool tempFromThermostat = false;
+    bool tempFromSensors = false;
+    double temperature = 0;
+
     foreach (const ThingId &thingId, zone.thermostats()) {
         Thermostat *thermostat = m_thermostats.value(thingId);
         if (thermostat) {
             qCDebug(dcAirConditioning()) << "Setting window open" << windowOpen << " and target temp" << targetTemp;
             thermostat->setWindowOpen(windowOpen);
             thermostat->setTargetTemperature(targetTemp);
+
+            if (thermostat->hasTemperatureSensor()) {
+                qCDebug(dcAirConditioning()) << "Thermostat has temperature sensor:" << thermostat->temperature();
+                if (!tempFromThermostat) {
+                    temperature = thermostat->temperature();
+                    tempFromThermostat = true;
+                }
+                temperature = qMax(temperature, thermostat->temperature());
+            }
         }
     }
+
+    double humidity = 0;
+    uint voc = 0;
+    double pm25 = 0;
 
     foreach (const ThingId &thingId, zone.indoorSensors()) {
         Thing *thing = m_thingManager->findConfiguredThing(thingId);
 
-        if (thing->thingClass().interfaces().contains("humiditysensor")) {
-            if (thing->stateValue("humidity").toDouble() >= 60) { // > 60 over longer periods of time may cause mould
-                highHumidity = true;
+        if (!tempFromThermostat) {
+            if (thing->thingClass().interfaces().contains("temperaturesensor")) {
+                if (!tempFromSensors) {
+                    temperature = thing->stateValue("temperature").toDouble();
+                    tempFromSensors = true;
+                } else {
+                    temperature = qMax(temperature, thing->stateValue("temperature").toDouble());
+                }
             }
+        }
+
+        if (thing->thingClass().interfaces().contains("humiditysensor")) {
+            humidity = qMax(humidity, thing->stateValue("humidity").toDouble());
         }
 
         if (thing->thingClass().interfaces().contains("vocsensor")) {
-            if (thing->stateValue("voc").toDouble() >= 660) { // Moderate as of IAQ
-                badAir = true;
-            }
+            voc = qMax(voc, thing->stateValue("voc").toUInt());
         }
 
         if (thing->thingClass().interfaces().contains("pm25sensor")) {
-            if (thing->stateValue("pm25").toDouble() >= 25) { // Moderate as of CAQI
-                badAir = true;
-            }
+            pm25 = qMax(pm25, thing->stateValue("pm25").toDouble());
         }
-
     }
 
     ZoneInfo::ZoneStatus newStatus = ZoneInfo::ZoneStatusFlagNone;
     newStatus.setFlag(ZoneInfo::ZoneStatusFlagWindowOpen, windowOpen);
     newStatus.setFlag(ZoneInfo::ZoneStatusFlagSetpointOverrideActive, overrideActive);
     newStatus.setFlag(ZoneInfo::ZoneStatusFlagTimeScheduleActive, timeScheduleActive);
-    newStatus.setFlag(ZoneInfo::ZoneStatusFlagHighHumidity, highHumidity);
-    newStatus.setFlag(ZoneInfo::ZoneStatusFlagBadAir, badAir);
+    newStatus.setFlag(ZoneInfo::ZoneStatusFlagHighHumidity, humidity >= 65); // > 60 over longer periods of time may cause mould, 70 will cause mould
+    newStatus.setFlag(ZoneInfo::ZoneStatusFlagBadAir, voc >= 660 || pm25 >= 25); // VOC: 660 Moderate as of IAQ, PM25: 25 Moderate as of CAQI
 
     if (zone.setpointOverrideMode() == ZoneInfo::SetpointOverrideModeEventual &&
             newStatus != m_eventualOverrideCache.value(zone.id())) {
@@ -403,11 +443,30 @@ void AirConditioningManager::updateZone(const QUuid &zoneId)
 
     }
 
-    if (targetTemp != zone.currentSetpoint() || newStatus != zone.zoneStatus()) {
-        qCDebug(dcAirConditioning()) << "Modifying Zone: setpoint:" << targetTemp << "status:" << newStatus;
+    if (targetTemp != zone.currentSetpoint()
+            || newStatus != zone.zoneStatus()
+            || temperature != zone.temperature()
+            || humidity != zone.humidity()
+            || voc != zone.voc()
+            || pm25 != zone.pm25()
+            ) {
+        qCDebug(dcAirConditioning()) << "Modifying Zone: setpoint:" << targetTemp << "status:" << newStatus << "temp:" << temperature << "humidity:" << humidity << "VOC:" << voc << "PM25:" << pm25;
         m_zones[zone.id()].setCurrentSetpoint(targetTemp);
         m_zones[zone.id()].setZoneStatus(newStatus);
+        m_zones[zone.id()].setTemperature(temperature);
+        m_zones[zone.id()].setHumidity(humidity);
+        m_zones[zone.id()].setVoc(voc);
+        m_zones[zone.id()].setPm25(pm25);
         emit zoneChanged(m_zones.value(zone.id()));
+
+        foreach (const ThingId &notificationThingId, zone.notifications()) {
+            Notifications *notifications = m_notifications.value(notificationThingId);
+            if (!notifications) {
+                qCWarning(dcAirConditioning()) << "Stale notification thing id in zone!" << notificationThingId << m_notifications.keys();
+                continue;
+            }
+            notifications->update(m_zones[zone.id()]);
+        }
     }
 }
 
@@ -415,6 +474,7 @@ void AirConditioningManager::loadZones()
 {
     qCDebug(dcAirConditioning()) << "Loading zones";
     QSettings settings(NymeaSettings::settingsPath() + "/airconditioning.conf", QSettings::IniFormat);
+
     settings.beginGroup("zones");
     qCDebug(dcAirConditioning()) << "child groups of zones" << settings.childKeys() << settings.childGroups();
     foreach (const QString &key, settings.childGroups()) {
@@ -447,8 +507,7 @@ void AirConditioningManager::loadZones()
         settings.endGroup(); // weekSchedule
         zone.setWeekSchedule(weekSchedule);
 
-        qCDebug(dcAirConditioning()) << "Loading thermostats" << settings.value("thermostats").toStringList() << settings.value("thermostats").toList();
-        QList<ThingId> thermostats, windowSensors, indoorSensors, outdoorSensors;
+        QList<ThingId> thermostats, windowSensors, indoorSensors, outdoorSensors, notifications;
         foreach (const QString &thingId, settings.value("thermostats").toStringList()) {
             thermostats.append(ThingId(thingId));
         }
@@ -465,8 +524,12 @@ void AirConditioningManager::loadZones()
             outdoorSensors.append(ThingId(thingId));
         }
         zone.setOutdoorSensors(outdoorSensors);
+        foreach (const QString &thingId, settings.value("notifications").toStringList()) {
+            notifications.append(ThingId(thingId));
+        }
+        zone.setNotifications(notifications);
 
-        qCDebug(dcAirConditioning()) << "Zone Loaded:" << zone.thermostats();
+        qCDebug(dcAirConditioning()) << "Zone Loaded:" << zone.thermostats() << zone.notifications();
         m_zones.insert(zoneId, zone);
         settings.endGroup(); // zone
     }
@@ -504,7 +567,7 @@ void AirConditioningManager::saveZones()
         }
         settings.endGroup(); // weekSchedule
 
-        QStringList thermostats, windowSensors, indoorSensors, outdoorSensors;
+        QStringList thermostats, windowSensors, indoorSensors, outdoorSensors, notifications;
         foreach (const ThingId &thingId, zone.thermostats()) {
             thermostats.append(thingId.toString());
         }
@@ -522,13 +585,18 @@ void AirConditioningManager::saveZones()
         }
         settings.setValue("outdoorSensors", outdoorSensors);
 
+        foreach (const ThingId &thingId, zone.notifications()) {
+            notifications.append(thingId.toString());
+        }
+        settings.setValue("notifications", notifications);
+
         settings.endGroup(); // zone
     }
     settings.endGroup();
 
 }
 
-AirConditioningManager::AirConditioningError AirConditioningManager::verifyThingIds(const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors)
+AirConditioningManager::AirConditioningError AirConditioningManager::verifyThingIds(const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications)
 {
     foreach (const QUuid &thingId, thermostats) {
         Thing *thing = m_thingManager->findConfiguredThing(thingId);
@@ -563,6 +631,17 @@ AirConditioningManager::AirConditioningError AirConditioningManager::verifyThing
                 && !thing->thingClass().interfaces().contains("vocsensor")
                 && !thing->thingClass().interfaces().contains("pm25sensor")) {
             qCWarning(dcAirConditioning()) << "Not a temperature, humidity, voc or pm25 sensor:" << thing->name();
+            return AirConditioningErrorInvalidThingType;
+        }
+    }
+    foreach (const QUuid &thingId, notifications) {
+        Thing *thing = m_thingManager->findConfiguredThing(thingId);
+        if (!thing) {
+            qCWarning(dcAirConditioning()) << "No thing with id" << thingId;
+            return AirConditioningErrorThingNotFound;
+        }
+        if (!thing->thingClass().interfaces().contains("notifications")) {
+            qCWarning(dcAirConditioning()) << "Not a notification thing:" << thing->name();
             return AirConditioningErrorInvalidThingType;
         }
     }

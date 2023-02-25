@@ -63,6 +63,7 @@ AirConditioningJsonHandler::AirConditioningJsonHandler(AirConditioningManager *m
     params.insert("o:windowSensors", QVariantList() << enumValueName(Uuid));
     params.insert("o:indoorSensors", QVariantList() << enumValueName(Uuid));
     params.insert("o:outdoorSensors", QVariantList() << enumValueName(Uuid));
+    params.insert("o:notifications", QVariantList() << enumValueName(Uuid));
     returns.insert("airConditioningError", enumRef<AirConditioningManager::AirConditioningError>());
     returns.insert("o:zone", objectRef<ZoneInfo>());
     registerMethod("AddZone", description, params, returns);
@@ -106,10 +107,11 @@ AirConditioningJsonHandler::AirConditioningJsonHandler(AirConditioningManager *m
     params.clear(); returns.clear();
     description = "Set Zone things";
     params.insert("zoneId", enumValueName(Uuid));
-    params.insert("thermostats", QVariantList() << enumValueName(Uuid));
-    params.insert("windowSensors", QVariantList() << enumValueName(Uuid));
-    params.insert("indoorSensors", QVariantList() << enumValueName(Uuid));
-    params.insert("outdoorSensors", QVariantList() << enumValueName(Uuid));
+    params.insert("o:thermostats", QVariantList() << enumValueName(Uuid));
+    params.insert("o:windowSensors", QVariantList() << enumValueName(Uuid));
+    params.insert("o:indoorSensors", QVariantList() << enumValueName(Uuid));
+    params.insert("o:outdoorSensors", QVariantList() << enumValueName(Uuid));
+    params.insert("o:notifications", QVariantList() << enumValueName(Uuid));
     returns.insert("airConditioningError", enumRef<AirConditioningManager::AirConditioningError>());
     registerMethod("SetZoneThings", description, params, returns);
 
@@ -161,7 +163,7 @@ JsonReply *AirConditioningJsonHandler::GetZones(const QVariantMap &params)
 
 JsonReply *AirConditioningJsonHandler::AddZone(const QVariantMap &params)
 {
-    QList<ThingId> thermostats, windowSensors, indoorSensors, outdoorSensors;
+    QList<ThingId> thermostats, windowSensors, indoorSensors, outdoorSensors, notifications;
     foreach (const QVariant &id, params.value("thermostats").toList()) {
         thermostats.append(id.toUuid());
     }
@@ -174,7 +176,10 @@ JsonReply *AirConditioningJsonHandler::AddZone(const QVariantMap &params)
     foreach (const QVariant &id, params.value("outdoorSensors").toList()) {
         outdoorSensors.append(id.toUuid());
     }
-    QPair<AirConditioningManager::AirConditioningError, ZoneInfo> status = m_manager->addZone(params.value("name").toString(), thermostats, windowSensors, indoorSensors, outdoorSensors);
+    foreach (const QVariant &id, params.value("notificatiosn").toList()) {
+        notifications.append(id.toUuid());
+    }
+    QPair<AirConditioningManager::AirConditioningError, ZoneInfo> status = m_manager->addZone(params.value("name").toString(), thermostats, windowSensors, indoorSensors, outdoorSensors, notifications);
     QVariantMap ret = {
         {"airConditioningError", enumValueName(status.first)}
     };
@@ -230,19 +235,50 @@ JsonReply *AirConditioningJsonHandler::SetZoneWeekSchedule(const QVariantMap &pa
 JsonReply *AirConditioningJsonHandler::SetZoneThings(const QVariantMap &params)
 {
     QUuid zoneId = params.value("zoneId").toUuid();
-    QList<ThingId> thermostats, windowSensors, indoorSensors, outdoorSensors;
-    foreach (const QVariant &variant, params.value("thermostats").toList()) {
-        thermostats.append(ThingId(variant.toUuid()));
+
+    ZoneInfo zone = m_manager->zone(zoneId);
+
+    QList<ThingId> thermostats, windowSensors, indoorSensors, outdoorSensors, notifications;
+    if (params.contains("thermostats")) {
+        foreach (const QVariant &variant, params.value("thermostats").toList()) {
+            thermostats.append(ThingId(variant.toUuid()));
+        }
+    } else {
+        thermostats = zone.thermostats();
     }
-    foreach (const QVariant &variant, params.value("windowSensors").toList()) {
-        windowSensors.append(ThingId(variant.toUuid()));
+
+    if (params.contains("windowSensors")) {
+        foreach (const QVariant &variant, params.value("windowSensors").toList()) {
+            windowSensors.append(ThingId(variant.toUuid()));
+        }
+    } else {
+        windowSensors = zone.windowSensors();
     }
-    foreach (const QVariant &variant, params.value("indoorSensors").toList()) {
-        indoorSensors.append(ThingId(variant.toUuid()));
+
+    if (params.contains("indoorSensors")) {
+        foreach (const QVariant &variant, params.value("indoorSensors").toList()) {
+            indoorSensors.append(ThingId(variant.toUuid()));
+        }
+    } else {
+        indoorSensors = zone.indoorSensors();
     }
-    foreach (const QVariant &variant, params.value("outdoorSensors").toList()) {
-        outdoorSensors.append(ThingId(variant.toUuid()));
+
+    if (params.contains("outdoorSensors")) {
+        foreach (const QVariant &variant, params.value("outdoorSensors").toList()) {
+            outdoorSensors.append(ThingId(variant.toUuid()));
+        }
+    } else {
+        outdoorSensors = zone.outdoorSensors();
     }
-    AirConditioningManager::AirConditioningError status = m_manager->setZoneThings(zoneId, thermostats, windowSensors, indoorSensors, outdoorSensors);
+
+    if (params.contains("notifications")) {
+        foreach (const QVariant &variant, params.value("notifications").toList()) {
+            notifications.append(ThingId(variant.toUuid()));
+        }
+    } else {
+        notifications = zone.notifications();
+    }
+
+    AirConditioningManager::AirConditioningError status = m_manager->setZoneThings(zoneId, thermostats, windowSensors, indoorSensors, outdoorSensors, notifications);
     return createReply({{"airConditioningError", enumValueName(status)}});
 }

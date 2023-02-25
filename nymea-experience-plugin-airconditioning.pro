@@ -12,6 +12,7 @@ include(../config.pri)
 HEADERS += experiencepluginairconditioning.h \
     airconditioningjsonhandler.h \
     airconditioningmanager.h \
+    notifications.h \
     temperatureschedule.h \
     thermostat.h \
     zoneinfo.h
@@ -19,6 +20,7 @@ HEADERS += experiencepluginairconditioning.h \
 SOURCES += experiencepluginairconditioning.cpp \
     airconditioningjsonhandler.cpp \
     airconditioningmanager.cpp \
+    notifications.cpp \
     temperatureschedule.cpp \
     thermostat.cpp \
     zoneinfo.cpp
