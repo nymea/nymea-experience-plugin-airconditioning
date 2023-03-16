@@ -76,7 +76,7 @@ void Thermostat::setWindowOpen(bool windowOpen)
     m_windowOpen = windowOpen;
 
     // First check if the device is capable of handling a window open locks
-    if (m_thing->hasState("windowOpen")) {
+    if (!m_thing->thingClass().actionTypes().findByName("windowOpen").id().isNull()) {
         if (m_thing->stateValue("windowOpen").toBool() != windowOpen) {
             ActionType actionType = m_thing->thingClass().actionTypes().findByName("windowOpen");
             Action action(actionType.id(), m_thing->id(), Action::TriggeredByRule);

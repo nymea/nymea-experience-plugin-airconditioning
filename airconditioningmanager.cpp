@@ -347,6 +347,17 @@ void AirConditioningManager::updateZone(const QUuid &zoneId)
 
     // Checking window open
     bool windowOpen = false;
+    foreach (const ThingId &thingId, zone.thermostats()) {
+        Thing *thing = m_thingManager->findConfiguredThing(thingId);
+        if (!thing) {
+            qCWarning(dcAirConditioning()) << "Thing" << thingId << "seems to have been removed from the system!";
+            continue;
+        }
+        if (thing->hasState("windowOpenDetected") && thing->stateValue("windowOpenDetected").toBool()) {
+            windowOpen = true;
+            break;
+        }
+    }
     foreach (const ThingId &thingId, zone.windowSensors()) {
         Thing *thing = m_thingManager->findConfiguredThing(thingId);
         if (!thing) {
