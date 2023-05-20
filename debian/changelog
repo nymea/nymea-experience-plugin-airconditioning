@@ -1,3 +1,13 @@
+nymea-experience-plugin-airconditioning (1.8.0) jammy; urgency=medium
+
+  [ Michael Zanetti ]
+  * Use the thermostats windowOpenDetected state too for determining
+    open windows
+  * Fix notifications being updated too often
+  * Allow users with control things permission to set AC temperatures
+
+ -- jenkins <developer@nymea.io>  Sat, 20 May 2023 21:38:35 +0200
+
 nymea-experience-plugin-airconditioning (1.7.0) jammy; urgency=medium
 
   [ Michael Zanetti ]
