@@ -95,14 +95,14 @@ AirConditioningJsonHandler::AirConditioningJsonHandler(AirConditioningManager *m
     params.insert("mode", enumRef<ZoneInfo::SetpointOverrideMode>());
     params.insert("o:minutes", enumValueName(Int));
     returns.insert("airConditioningError", enumRef<AirConditioningManager::AirConditioningError>());
-    registerMethod("SetZoneSetpointOverride", description, params, returns);
+    registerMethod("SetZoneSetpointOverride", description, params, returns, Types::PermissionScopeControlThings);
 
     params.clear(); returns.clear();
     description = "Set the time schedule for a zone.";
     params.insert("zoneId", enumValueName(Uuid));
     params.insert("weekSchedule", objectRef<TemperatureWeekSchedule>());
     returns.insert("airConditioningError", enumRef<AirConditioningManager::AirConditioningError>());
-    registerMethod("SetZoneWeekSchedule", description, params, returns);
+    registerMethod("SetZoneWeekSchedule", description, params, returns, Types::PermissionScopeControlThings);
 
     params.clear(); returns.clear();
     description = "Set Zone things";
