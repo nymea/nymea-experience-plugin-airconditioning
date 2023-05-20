@@ -7,10 +7,16 @@ Notifications::Notifications(ThingManager *thingManager, Thing *thing, QObject *
       m_thingManager(thingManager),
       m_thing(thing)
 {
-    m_clearTimer.setInterval(30*60*1000);
-    m_clearTimer.setSingleShot(true);
-    connect(&m_clearTimer, &QTimer::timeout, this, [this](){
-        m_isShown = false;
+    m_clearHumidityTimer.setInterval(30*60*1000);
+    m_clearHumidityTimer.setSingleShot(true);
+    connect(&m_clearHumidityTimer, &QTimer::timeout, this, [this](){
+        m_humidityWarningShown = false;
+    });
+
+    m_clearBadAirTimer.setInterval(30*60*1000);
+    m_clearBadAirTimer.setSingleShot(true);
+    connect(&m_clearBadAirTimer, &QTimer::timeout, this, [this](){
+        m_badAirWarningShown = false;
     });
 }
 
@@ -24,20 +30,31 @@ void Notifications::update(const ZoneInfo &zone)
     QString notificationId = "humidityalert-" + zone.id().toString();
     QString title = "High humidity alert";
     QString text = QString("Humidity in zone %1: %2 %").arg(zone.name()).arg(zone.humidity());
+    ThingActionInfo *actionInfo = nullptr;
     if (zone.zoneStatus().testFlag(ZoneInfo::ZoneStatusFlagHighHumidity)) {
-        if (!m_isShown) {
+        if (!m_humidityWarningShown) {
             // show
-            updateNotification(notificationId, title, text, false, false);
-        } else if (supportsUpdate) {
+            actionInfo = updateNotification(notificationId, title, text, false, false);
+        } else if (supportsUpdate && !qFuzzyCompare(zone.humidity(), m_lastHumidityValue)) {
             // update
-            updateNotification(notificationId, title, text, false, false);
+            actionInfo = updateNotification(notificationId, title, text, false, false);
         }
     } else {
-        if (m_isShown && supportsUpdate) {
+        if (m_humidityWarningShown && supportsUpdate) {
             // remove
-            updateNotification(notificationId, title, text, false, true);
+            actionInfo = updateNotification(notificationId, title, text, false, true);
         }
     }
+    if (actionInfo) {
+        connect(actionInfo, &ThingActionInfo::finished, this, [=](){
+            if (actionInfo->status() == Thing::ThingErrorNoError) {
+                m_humidityWarningShown = zone.zoneStatus().testFlag(ZoneInfo::ZoneStatusFlagHighHumidity);
+                m_lastHumidityValue = zone.humidity();
+                m_clearHumidityTimer.start();
+            }
+        });
+    }
+
 
     notificationId = "airalert-" + zone.id().toString();
     title = "Bad air alert";
@@ -50,23 +67,33 @@ void Notifications::update(const ZoneInfo &zone)
         airValues.append(QString("%1 µg/m³").arg(zone.pm25()));
     }
     text = text.arg(airValues.join(","));
+    actionInfo = nullptr;
     if (zone.zoneStatus().testFlag(ZoneInfo::ZoneStatusFlagBadAir)) {
-        if (!m_isShown) {
+        if (!m_badAirWarningShown) {
             // show
-            updateNotification(notificationId, title, text, false, false);
-        } else if (supportsUpdate) {
+            actionInfo = updateNotification(notificationId, title, text, false, false);
+        } else if (supportsUpdate && zone.voc() != m_lastBadAirValue) {
             // update
-            updateNotification(notificationId, title, text, false, false);
+            actionInfo = updateNotification(notificationId, title, text, false, false);
         }
     } else {
-        if (m_isShown && supportsUpdate) {
+        if (m_badAirWarningShown && supportsUpdate) {
             // remove
-            updateNotification(notificationId, title, text, false, true);
+            actionInfo = updateNotification(notificationId, title, text, false, true);
         }
+    }
+    if (actionInfo) {
+        connect(actionInfo, &ThingActionInfo::finished, this, [=](){
+            if (actionInfo->status() == Thing::ThingErrorNoError) {
+                m_badAirWarningShown = zone.zoneStatus().testFlag(ZoneInfo::ZoneStatusFlagBadAir);
+                m_lastBadAirValue = zone.voc();
+                m_clearHumidityTimer.start();
+            }
+        });
     }
 }
 
-void Notifications::updateNotification(const QString &id, const QString &title, const QString &text, bool sound, bool remove)
+ThingActionInfo* Notifications::updateNotification(const QString &id, const QString &title, const QString &text, bool sound, bool remove)
 {
     ActionType actionType = m_thing->thingClass().actionTypes().findByName("notify");
     Action action(actionType.id(), m_thing->id(), Action::TriggeredByRule);
@@ -91,11 +118,5 @@ void Notifications::updateNotification(const QString &id, const QString &title, 
     action.setParams(params);
 
     ThingActionInfo *info = m_thingManager->executeAction(action);
-    connect(info, &ThingActionInfo::finished, this, [=](){
-        if (info->status() == Thing::ThingErrorNoError) {
-            m_isShown = !remove;
-            m_clearTimer.start();
-        }
-    });
-
+    return info;
 }
