@@ -1,3 +1,10 @@
+nymea-experience-plugin-airconditioning (1.8.4) jammy; urgency=medium
+
+  [ Michael Zanetti ]
+  * Allow users with control things permission to set AC temperatures
+
+ -- jenkins <developer@nymea.io>  Fri, 18 Aug 2023 17:13:07 +0200
+
 nymea-experience-plugin-airconditioning (1.8.3) jammy; urgency=medium
 
   [ Michael Zanetti ]
