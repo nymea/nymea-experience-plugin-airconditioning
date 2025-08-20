@@ -87,7 +87,7 @@ QPair<AirConditioningManager::AirConditioningError, ZoneInfo> AirConditioningMan
     AirConditioningError status = verifyThingIds(thermostats, windowSensors, indoorSensors, outdoorSensors, notifications);
     if (status != AirConditioningErrorNoError) {
         qCWarning(dcAirConditioning()) << "Invalid thing id" << status << "in" << thermostats;
-        return qMakePair<AirConditioningError, ZoneInfo>(status, ZoneInfo());
+        return QPair<AirConditioningError, ZoneInfo>(status, ZoneInfo());
     }
 
     zone.setThermostats(thermostats);
@@ -100,7 +100,7 @@ QPair<AirConditioningManager::AirConditioningError, ZoneInfo> AirConditioningMan
     saveZones();
 
     emit zoneAdded(zone);
-    return qMakePair<AirConditioningError, ZoneInfo>(AirConditioningErrorNoError, zone);
+    return QPair<AirConditioningError, ZoneInfo>(AirConditioningErrorNoError, zone);
 }
 
 AirConditioningManager::AirConditioningError AirConditioningManager::removeZone(const QUuid &zoneId)
@@ -325,7 +325,8 @@ void AirConditioningManager::updateZone(const QUuid &zoneId)
 
     bool timeScheduleActive = false;
     bool overrideActive = false;
-    qCDebug(dcAirConditioning()) << "Standby temp:" << zone.standbySetpoint() << "Override:" << zone.setpointOverrideMode() << zone.setpointOverride() << zone.setpointOverrideEnd().toString(Qt::DefaultLocaleShortDate) << "Schedules:" << zone.weekSchedule();
+
+    qCDebug(dcAirConditioning()) << "Standby temp:" << zone.standbySetpoint() << "Override:" << zone.setpointOverrideMode() << zone.setpointOverride() << zone.setpointOverrideEnd().toString() << "Schedules:" << zone.weekSchedule();
 
     if (zone.setpointOverrideMode() == ZoneInfo::SetpointOverrideModeUnlimited
             || (zone.setpointOverrideMode() == ZoneInfo::SetpointOverrideModeTimed && zone.setpointOverrideEnd() > now)
