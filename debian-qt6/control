@@ -1,0 +1,22 @@
+Source: nymea-experience-plugin-airconditioning
+Section: utils
+Priority: optional
+Maintainer: nymea GmbH <developer@nymea.io>
+Standards-Version: 4.7.2
+Homepage: https://nymea.io
+Build-Depends: debhelper,
+               dpkg-dev,
+               qt6-base-dev,
+               qt6-base-dev-tools,
+               libnymea-dev,
+               nymea-dev-tools:native,
+
+Package: nymea-experience-plugin-airconditioning
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+Description: nymea experiece plugin for thermostat and air quality control
+ This nymea experience adds the support controlling heating/cooling devices
+ and monitoring air quality.
