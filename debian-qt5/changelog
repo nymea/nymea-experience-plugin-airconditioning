@@ -1,3 +1,10 @@
+nymea-experience-plugin-airconditioning (1.14.0) jammy; urgency=medium
+
+  [ Simon Stürz ]
+  * TMP
+
+ -- jenkins <developer@nymea.io>  Wed, 19 Nov 2025 09:59:24 +0100
+
 nymea-experience-plugin-airconditioning (1.12.3) jammy; urgency=medium
 
 
