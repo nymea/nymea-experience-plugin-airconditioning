@@ -1,3 +1,10 @@
+nymea-experience-plugin-airconditioning (1.13.0) jammy; urgency=medium
+
+  [ Simon Stürz ]
+  * Update license text and add SPDX identifier
+
+ -- jenkins <developer@nymea.io>  Tue, 02 Dec 2025 10:40:02 +0100
+
 nymea-experience-plugin-airconditioning (1.12.4) jammy; urgency=medium
 
 
