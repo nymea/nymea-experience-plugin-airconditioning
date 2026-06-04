@@ -42,6 +42,6 @@ void ExperiencePluginAirConditioning::init()
     qCDebug(dcAirConditioning()) << "Initializing air conditioning experience";
 
     m_manager = new AirConditioningManager(thingManager(), this);
-    jsonRpcServer()->registerExperienceHandler(new AirConditioningJsonHandler(m_manager, this), 1, 0);
+    jsonRpcServer()->registerExperienceHandler(new AirConditioningJsonHandler(m_manager, this), 1, 1);
 
 }

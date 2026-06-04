@@ -52,7 +52,7 @@ public:
 
     ZoneInfos zones() const;
     ZoneInfo zone(const QUuid &thermostatId);
-    QPair<AirConditioningManager::AirConditioningError, ZoneInfo> addZone(const QString &name, const QList<ThingId> &thermostats, const QList<ThingId> windowSensors, const QList<ThingId> indoorSensors, const QList<ThingId> outdoorSensors, const QList<ThingId> notifications);
+    QPair<AirConditioningManager::AirConditioningError, ZoneInfo> addZone(const QString &name, const QList<ThingId> &thermostats, const QList<ThingId> &valves, const QList<ThingId> windowSensors, const QList<ThingId> indoorSensors, const QList<ThingId> outdoorSensors, const QList<ThingId> notifications);
     AirConditioningError removeZone(const QUuid &zoneId);
 
     AirConditioningError setZoneName(const QUuid &zoneId, const QString &name);
@@ -60,7 +60,7 @@ public:
     AirConditioningError setZoneSetpointOverride(const QUuid &zoneId, double setpoint, ZoneInfo::SetpointOverrideMode mode, uint minutes);
     AirConditioningError setZoneWeekSchedules(const QUuid &zoneId, const TemperatureWeekSchedule &temperatureWeekSchedule);
 
-    AirConditioningError setZoneThings(const QUuid &zoneId, const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications);
+    AirConditioningError setZoneThings(const QUuid &zoneId, const QList<ThingId> &thermostats, const QList<ThingId> &valves, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications);
 //    AirConditioningError addThing(const QUuid &zoneId, const ThingId &thingId);
 //    AirConditioningError removeThing(const QUuid &zoneId, const ThingId &thingId);
 
@@ -84,7 +84,7 @@ private:
     void loadZones();
     void saveZones();
 
-    AirConditioningError verifyThingIds(const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications);
+    AirConditioningError verifyThingIds(const QList<ThingId> &thermostats, const QList<ThingId> &valves, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications);
 
 private:
     ThingManager *m_thingManager = nullptr;

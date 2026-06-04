@@ -73,18 +73,19 @@ ZoneInfo AirConditioningManager::zone(const QUuid &zoneId)
     return m_zones.value(zoneId);
 }
 
-QPair<AirConditioningManager::AirConditioningError, ZoneInfo> AirConditioningManager::addZone(const QString &name, const QList<ThingId> &thermostats, const QList<ThingId> windowSensors, const QList<ThingId> indoorSensors, const QList<ThingId> outdoorSensors, const QList<ThingId> notifications)
+QPair<AirConditioningManager::AirConditioningError, ZoneInfo> AirConditioningManager::addZone(const QString &name, const QList<ThingId> &thermostats, const QList<ThingId> &valves, const QList<ThingId> windowSensors, const QList<ThingId> indoorSensors, const QList<ThingId> outdoorSensors, const QList<ThingId> notifications)
 {
     ZoneInfo zone(QUuid::createUuid());
     zone.setName(name);
     zone.setWeekSchedule(TemperatureWeekSchedule::create());
-    AirConditioningError status = verifyThingIds(thermostats, windowSensors, indoorSensors, outdoorSensors, notifications);
+    AirConditioningError status = verifyThingIds(thermostats, valves, windowSensors, indoorSensors, outdoorSensors, notifications);
     if (status != AirConditioningErrorNoError) {
         qCWarning(dcAirConditioning()) << "Invalid thing id" << status << "in" << thermostats;
         return QPair<AirConditioningError, ZoneInfo>(status, ZoneInfo());
     }
 
     zone.setThermostats(thermostats);
+    zone.setValves(valves);
     zone.setWindowSensors(windowSensors);
     zone.setIndoorSensors(indoorSensors);
     zone.setOutdoorSensors(outdoorSensors);
@@ -177,22 +178,23 @@ AirConditioningManager::AirConditioningError AirConditioningManager::setZoneWeek
     return AirConditioningErrorNoError;
 }
 
-AirConditioningManager::AirConditioningError AirConditioningManager::setZoneThings(const QUuid &zoneId, const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications)
+AirConditioningManager::AirConditioningError AirConditioningManager::setZoneThings(const QUuid &zoneId, const QList<ThingId> &thermostats, const QList<ThingId> &valves, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications)
 {
     if (!m_zones.contains(zoneId)) {
         return AirConditioningErrorZoneNotFound;
     }
-    AirConditioningError status = verifyThingIds(thermostats, windowSensors, indoorSensors, outdoorSensors, notifications);
+    AirConditioningError status = verifyThingIds(thermostats, valves, windowSensors, indoorSensors, outdoorSensors, notifications);
     if (status != AirConditioningErrorNoError) {
         return status;
     }
     m_zones[zoneId].setThermostats(thermostats);
+    m_zones[zoneId].setValves(valves);
     m_zones[zoneId].setWindowSensors(windowSensors);
     m_zones[zoneId].setIndoorSensors(indoorSensors);
     m_zones[zoneId].setOutdoorSensors(outdoorSensors);
     m_zones[zoneId].setNotifications(notifications);
     saveZones();
-    qCDebug(dcAirConditioning()) << "Zone things set. Thermostats:" << thermostats << "Window sensors:" << windowSensors << "indoor sensors:" << indoorSensors << "outdoor sensors:" << outdoorSensors << "notifications:" << notifications;
+    qCDebug(dcAirConditioning()) << "Zone things set. Thermostats:" << thermostats << "valves:" << valves << "Window sensors:" << windowSensors << "indoor sensors:" << indoorSensors << "outdoor sensors:" << outdoorSensors << "notifications:" << notifications;
     emit zoneChanged(m_zones.value(zoneId));
     updateZone(zoneId);
     return AirConditioningErrorNoError;
@@ -228,6 +230,7 @@ void AirConditioningManager::onThingRemoved(const ThingId &thingId)
 {
     foreach (const ZoneInfo &zone, m_zones) {
         QList<ThingId> thermostats = m_zones.value(zone.id()).thermostats();
+        QList<ThingId> valves = m_zones.value(zone.id()).valves();
         QList<ThingId> windowSensors = m_zones.value(zone.id()).windowSensors();
         QList<ThingId> indoorSensors = m_zones.value(zone.id()).indoorSensors();
         QList<ThingId> outdoorSensors = m_zones.value(zone.id()).outdoorSensors();
@@ -235,6 +238,10 @@ void AirConditioningManager::onThingRemoved(const ThingId &thingId)
         bool changed = false;
         if (thermostats.contains(thingId)) {
             thermostats.removeAll(thingId);
+            changed = true;
+        }
+        if (valves.contains(thingId)) {
+            valves.removeAll(thingId);
             changed = true;
         }
         if (windowSensors.contains(thingId)) {
@@ -254,7 +261,7 @@ void AirConditioningManager::onThingRemoved(const ThingId &thingId)
             changed = true;
         }
         if (changed) {
-            setZoneThings(zone.id(), thermostats, windowSensors, indoorSensors, outdoorSensors, notifications);
+            setZoneThings(zone.id(), thermostats, valves, windowSensors, indoorSensors, outdoorSensors, notifications);
         }
     }
 }
@@ -513,11 +520,15 @@ void AirConditioningManager::loadZones()
         settings.endGroup(); // weekSchedule
         zone.setWeekSchedule(weekSchedule);
 
-        QList<ThingId> thermostats, windowSensors, indoorSensors, outdoorSensors, notifications;
+        QList<ThingId> thermostats, valves, windowSensors, indoorSensors, outdoorSensors, notifications;
         foreach (const QString &thingId, settings.value("thermostats").toStringList()) {
             thermostats.append(ThingId(thingId));
         }
         zone.setThermostats(thermostats);
+        foreach (const QString &thingId, settings.value("valves").toStringList()) {
+            valves.append(ThingId(thingId));
+        }
+        zone.setValves(valves);
         foreach (const QString &thingId, settings.value("windowSensors").toStringList()) {
             windowSensors.append(ThingId(thingId));
         }
@@ -535,7 +546,7 @@ void AirConditioningManager::loadZones()
         }
         zone.setNotifications(notifications);
 
-        qCDebug(dcAirConditioning()) << "Zone Loaded:" << zone.thermostats() << zone.notifications();
+        qCDebug(dcAirConditioning()) << "Zone Loaded:" << zone.thermostats() << zone.valves() << zone.notifications();
         m_zones.insert(zoneId, zone);
         settings.endGroup(); // zone
     }
@@ -573,11 +584,15 @@ void AirConditioningManager::saveZones()
         }
         settings.endGroup(); // weekSchedule
 
-        QStringList thermostats, windowSensors, indoorSensors, outdoorSensors, notifications;
+        QStringList thermostats, valves, windowSensors, indoorSensors, outdoorSensors, notifications;
         foreach (const ThingId &thingId, zone.thermostats()) {
             thermostats.append(thingId.toString());
         }
         settings.setValue("thermostats", thermostats);
+        foreach (const ThingId &thingId, zone.valves()) {
+            valves.append(thingId.toString());
+        }
+        settings.setValue("valves", valves);
         foreach (const ThingId &thingId, zone.windowSensors()) {
             windowSensors.append(thingId.toString());
         }
@@ -602,7 +617,7 @@ void AirConditioningManager::saveZones()
 
 }
 
-AirConditioningManager::AirConditioningError AirConditioningManager::verifyThingIds(const QList<ThingId> &thermostats, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications)
+AirConditioningManager::AirConditioningError AirConditioningManager::verifyThingIds(const QList<ThingId> &thermostats, const QList<ThingId> &valves, const QList<ThingId> &windowSensors, const QList<ThingId> &indoorSensors, const QList<ThingId> &outdoorSensors, const QList<ThingId> &notifications)
 {
     foreach (const QUuid &thingId, thermostats) {
         Thing *thing = m_thingManager->findConfiguredThing(thingId);
@@ -612,6 +627,17 @@ AirConditioningManager::AirConditioningError AirConditioningManager::verifyThing
         }
         if (!thing->thingClass().interfaces().contains("thermostat")) {
             qCWarning(dcAirConditioning()) << "Not a thermostat:" << thing->name();
+            return AirConditioningErrorInvalidThingType;
+        }
+    }
+    foreach (const QUuid &thingId, valves) {
+        Thing *thing = m_thingManager->findConfiguredThing(thingId);
+        if (!thing) {
+            qCWarning(dcAirConditioning()) << "No thing with id" << thingId;
+            return AirConditioningErrorThingNotFound;
+        }
+        if (!thing->thingClass().interfaces().contains("valve")) {
+            qCWarning(dcAirConditioning()) << "Not a valve:" << thing->name();
             return AirConditioningErrorInvalidThingType;
         }
     }
@@ -653,4 +679,3 @@ AirConditioningManager::AirConditioningError AirConditioningManager::verifyThing
     }
     return AirConditioningErrorNoError;
 }
-

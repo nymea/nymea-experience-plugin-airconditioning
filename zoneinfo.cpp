@@ -103,6 +103,16 @@ void ZoneInfo::setThermostats(const QList<ThingId> &thermostats)
     m_thermostats = thermostats;
 }
 
+QList<ThingId> ZoneInfo::valves() const
+{
+    return m_valves;
+}
+
+void ZoneInfo::setValves(const QList<ThingId> &valves)
+{
+    m_valves = valves;
+}
+
 QList<ThingId> ZoneInfo::windowSensors() const
 {
     return m_windowSensors;

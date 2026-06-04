@@ -44,6 +44,7 @@ class ZoneInfo
     Q_PROPERTY(double setpointOverride READ setpointOverride)
     Q_PROPERTY(QDateTime setpointOverrideEnd READ setpointOverrideEnd)
     Q_PROPERTY(QList<ThingId> thermostats READ thermostats)
+    Q_PROPERTY(QList<ThingId> valves READ valves)
     Q_PROPERTY(QList<ThingId> windowSensors READ windowSensors)
     Q_PROPERTY(QList<ThingId> indoorSensors READ indoorSensors)
     Q_PROPERTY(QList<ThingId> outdoorSensors READ outdoorSensors)
@@ -99,6 +100,9 @@ public:
     QList<ThingId> thermostats() const;
     void setThermostats(const QList<ThingId> &thermostats);
 
+    QList<ThingId> valves() const;
+    void setValves(const QList<ThingId> &valves);
+
     QList<ThingId> windowSensors() const;
     void setWindowSensors(const QList<ThingId> &windowSensors);
 
@@ -139,6 +143,7 @@ private:
     SetpointOverrideMode m_setpointOverrideMode = SetpointOverrideModeNone;
     QDateTime m_setpointOverrideEnd;
     QList<ThingId> m_thermostats;
+    QList<ThingId> m_valves;
     QList<ThingId> m_windowSensors;
     QList<ThingId> m_indoorSensors;
     QList<ThingId> m_outdoorSensors;
